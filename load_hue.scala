@@ -5,24 +5,18 @@
 //
 // Input files: consumption_N.txt (tab-separated, with a header line)
 //     LOG_ID  HOUSE_ID  CONDATE  CONHOUR  ENERGY_READING  FLAG
-//
-// Each daily file holds every house's readings for that day, in the same
-// tab-separated format, sorted by house and then by time.
-//
-// Run it in spark-shell:
-//     hdfs dfs -mkdir -p /raw/hue
-//     hdfs dfs -put consumption_*.txt /raw/hue/
-//     spark-shell -i load_hue.scala
+
 
 import org.apache.spark.sql.functions._
 
-// ---- settings -------------------------------------------------------------
-val src  = "hdfs:///raw/hue/consumption_*.txt"   // where the consumption files are
+// Define Starting Variables
+val src  = "hdfs:///raw/hue/consumption_1.txt"   // where the consumption files are
 val tmp  = "hdfs:///tmp/hue_stage"               // temporary Spark output
 val root = "/energyDataset"                      // final HDFS location
-val writeHeader = true                           // header line in each daily file?
-// ---------------------------------------------------------------------------
+val writeHeader = true                           // header line in each daily file
 
+
+// Create a tuple of column names and their expected positions in the input files
 val cols = Seq("LOG_ID", "HOUSE_ID", "CONDATE", "CONHOUR", "ENERGY_READING", "FLAG")
 
 // 1. Read the files as text and split on whitespace (works whether the
@@ -53,10 +47,10 @@ val fs = org.apache.hadoop.fs.FileSystem.get(spark.sparkContext.hadoopConfigurat
 val parts = fs.globStatus(new org.apache.hadoop.fs.Path(tmp + "/year=*/month=*/day=*/part-*"))
 
 parts.foreach { st =>
-  val p = st.getPath
-  val d = p.getParent.getName.split("=")(1)
-  val m = p.getParent.getParent.getName.split("=")(1)
-  val y = p.getParent.getParent.getParent.getName.split("=")(1)
+  val p = st.getPath // p = path 
+  val d = p.getParent.getName.split("=")(1) // d = day 
+  val m = p.getParent.getParent.getName.split("=")(1) // m = month
+  val y = p.getParent.getParent.getParent.getName.split("=")(1) // y = year
 
   val destDir = new org.apache.hadoop.fs.Path(s"$root/$y/$m/$d")
   val dest    = new org.apache.hadoop.fs.Path(destDir, s"datafile_${y}_${m}_${d}.txt")
